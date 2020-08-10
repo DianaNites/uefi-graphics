@@ -4,6 +4,7 @@ use core::convert::TryInto;
 use embedded_graphics::{drawable::Pixel, pixelcolor::*, prelude::*, DrawTarget};
 use uefi::proto::console::gop::*;
 
+#[derive(Debug)]
 pub struct Unsupported(());
 
 /// UEFI Display driver.

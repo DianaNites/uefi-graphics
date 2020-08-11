@@ -41,7 +41,7 @@ impl<'a, T: Into<Bgr888> + PixelColor> DrawTarget<T> for UefiDisplay<'a> {
             .expect("Stride didn't fit in u64. Buggy UEFI firmware?");
         let (x, y) = (point.x as u64, point.y as u64);
         if x < width.into() && y < height.into() {
-            let index: usize = ((y * stride + x) * 4)
+            let index: usize = (((y * stride) + x) * 4)
                 .try_into()
                 .expect("Framebuffer index overflowed usize");
             unsafe {
@@ -101,7 +101,7 @@ impl<'a> DrawTarget<Bgr888> for UefiDisplayNotGeneric<'a> {
             .expect("Stride didn't fit in u64. Buggy UEFI firmware?");
         let (x, y) = (point.x as u64, point.y as u64);
         if x < width.into() && y < height.into() {
-            let index: usize = ((y * stride + x) * 4)
+            let index: usize = (((y * stride) + x) * 4)
                 .try_into()
                 .expect("Framebuffer index overflowed usize");
             unsafe {

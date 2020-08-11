@@ -47,10 +47,11 @@ impl<'a, T: Into<Bgr888> + PixelColor> DrawTarget<T> for UefiDisplay<'a> {
             unsafe {
                 match self.info.pixel_format() {
                     PixelFormat::RGB => {
-                        self.fb.write_value(index, Rgb888::from(color));
+                        self.fb
+                            .write_value(index, Rgb888::from(color).into_storage());
                     }
                     PixelFormat::BGR => {
-                        self.fb.write_value(index, color);
+                        self.fb.write_value(index, color.into_storage());
                     }
                     _ => return Err(Unsupported(())),
                 }
@@ -106,10 +107,11 @@ impl<'a> DrawTarget<Bgr888> for UefiDisplayNotGeneric<'a> {
             unsafe {
                 match self.info.pixel_format() {
                     PixelFormat::RGB => {
-                        self.fb.write_value(index, Rgb888::from(color));
+                        self.fb
+                            .write_value(index, Rgb888::from(color).into_storage());
                     }
                     PixelFormat::BGR => {
-                        self.fb.write_value(index, color);
+                        self.fb.write_value(index, color.into_storage());
                     }
                     _ => return Err(Unsupported(())),
                 }

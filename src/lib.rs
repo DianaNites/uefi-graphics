@@ -32,7 +32,17 @@ impl<'a, T: Into<Bgr888> + PixelColor> DrawTarget<T> for UefiDisplay<'a> {
 
     fn draw_pixel(&mut self, item: Pixel<T>) -> Result<(), Self::Error> {
         let Pixel(point, color) = item;
-        let color: Bgr888 = color.into();
+        let mut bytes = [0u8; 3];
+        match self.info.pixel_format() {
+            PixelFormat::RGB => {
+                bytes
+                    .copy_from_slice(&Rgb888::from(color.into()).into_storage().to_ne_bytes()[..3]);
+            }
+            PixelFormat::BGR => {
+                bytes.copy_from_slice(&color.into().into_storage().to_ne_bytes()[..3]);
+            }
+            _ => return Err(Unsupported(())),
+        }
         let Size { width, height } = <Self as DrawTarget<T>>::size(self);
         let stride: u64 = self
             .info
@@ -44,19 +54,7 @@ impl<'a, T: Into<Bgr888> + PixelColor> DrawTarget<T> for UefiDisplay<'a> {
             let index: usize = (((y * stride) + x) * 4)
                 .try_into()
                 .expect("Framebuffer index overflowed usize");
-            unsafe {
-                match self.info.pixel_format() {
-                    PixelFormat::RGB => {
-                        self.fb
-                            .write_value(index, Rgb888::from(color).into_storage().to_ne_bytes());
-                    }
-                    PixelFormat::BGR => {
-                        self.fb
-                            .write_value(index, color.into_storage().to_ne_bytes());
-                    }
-                    _ => return Err(Unsupported(())),
-                }
-            }
+            unsafe { self.fb.write_value(index, bytes) };
         }
         Ok(())
     }
@@ -94,6 +92,13 @@ impl<'a> DrawTarget<Bgr888> for UefiDisplayNotGeneric<'a> {
 
     fn draw_pixel(&mut self, item: Pixel<Bgr888>) -> Result<(), Self::Error> {
         let Pixel(point, color) = item;
+        let mut bytes = [0u8; 3];
+        match self.info.pixel_format() {
+            PixelFormat::BGR => {
+                bytes.copy_from_slice(&color.into_storage().to_ne_bytes()[..3]);
+            }
+            _ => return Err(Unsupported(())),
+        }
         let Size { width, height } = self.size();
         let stride: u64 = self
             .info
@@ -105,19 +110,7 @@ impl<'a> DrawTarget<Bgr888> for UefiDisplayNotGeneric<'a> {
             let index: usize = (((y * stride) + x) * 4)
                 .try_into()
                 .expect("Framebuffer index overflowed usize");
-            unsafe {
-                match self.info.pixel_format() {
-                    PixelFormat::RGB => {
-                        self.fb
-                            .write_value(index, Rgb888::from(color).into_storage().to_ne_bytes());
-                    }
-                    PixelFormat::BGR => {
-                        self.fb
-                            .write_value(index, color.into_storage().to_ne_bytes());
-                    }
-                    _ => return Err(Unsupported(())),
-                }
-            }
+            unsafe { self.fb.write_value(index, bytes) };
         }
         Ok(())
     }

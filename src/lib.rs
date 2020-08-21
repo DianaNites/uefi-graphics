@@ -36,10 +36,10 @@ impl<'a, T: Into<Bgr888> + PixelColor> DrawTarget<T> for UefiDisplay<'a> {
         match self.info.pixel_format() {
             PixelFormat::RGB => {
                 bytes
-                    .copy_from_slice(&Rgb888::from(color.into()).into_storage().to_ne_bytes()[..3]);
+                    .copy_from_slice(&Rgb888::from(color.into()).into_storage().to_be_bytes()[1..]);
             }
             PixelFormat::BGR => {
-                bytes.copy_from_slice(&color.into().into_storage().to_ne_bytes()[..3]);
+                bytes.copy_from_slice(&color.into().into_storage().to_be_bytes()[1..]);
             }
             _ => return Err(Unsupported(())),
         }
@@ -95,7 +95,7 @@ impl<'a> DrawTarget<Bgr888> for UefiDisplayNotGeneric<'a> {
         let mut bytes = [0u8; 3];
         match self.info.pixel_format() {
             PixelFormat::BGR => {
-                bytes.copy_from_slice(&color.into_storage().to_ne_bytes()[..3]);
+                bytes.copy_from_slice(&color.into_storage().to_be_bytes()[1..]);
             }
             _ => return Err(Unsupported(())),
         }

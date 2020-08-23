@@ -25,6 +25,13 @@ impl<'a> UefiDisplay<'a> {
     pub fn new(info: ModeInfo, fb: FrameBuffer<'a>) -> Self {
         Self { info, fb }
     }
+
+    pub fn size(&self) -> Size {
+        let (width, height) = self.info.resolution();
+        // `as` cast is okay, ModeInfo::resolution casts to usize from u32 for some
+        // reason..
+        Size::new(width as u32, height as u32)
+    }
 }
 
 impl<'a, T: Into<Bgr888> + PixelColor> DrawTarget<T> for UefiDisplay<'a> {
@@ -60,14 +67,6 @@ impl<'a, T: Into<Bgr888> + PixelColor> DrawTarget<T> for UefiDisplay<'a> {
     }
 
     fn size(&self) -> Size {
-        let (width, height) = self.info.resolution();
-        Size::new(
-            width
-                .try_into()
-                .expect("Display width didn't fit in u32. Buggy UEFI firmware?"),
-            height
-                .try_into()
-                .expect("Display height didn't fit in u32. Buggy UEFI firmware?"),
-        )
+        self.size()
     }
 }

@@ -3,6 +3,12 @@ name = "uefi-graphics"
 version = "0.1.0"
 authors = ["Diana"]
 edition = "2018"
+readme = "README.md"
+description = "An embedded-graphics display driver for UEFI environments"
+repository = "https://github.com/DianaNites/uefi-graphics"
+license = "MIT OR Apache-2.0"
+keywords = ["uefi", "graphics", "no-std", "embedded"]
+categories = ["no-std", "embedded", "hardware-support"]
 
 [dependencies]
 embedded-graphics = "0.6.2"

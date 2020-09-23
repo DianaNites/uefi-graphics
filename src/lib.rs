@@ -1,4 +1,4 @@
-//! An embedded-graphics display driver for UEFI systems
+//! An embedded-graphics display driver for UEFI environments
 #![no_std]
 use core::convert::TryInto;
 use embedded_graphics::{drawable::Pixel, pixelcolor::*, prelude::*, DrawTarget};
@@ -26,11 +26,12 @@ impl<'a> UefiDisplay<'a> {
         Self { info, fb }
     }
 
+    /// Return the size of the display
     pub fn size(&self) -> Size {
         let (width, height) = self.info.resolution();
-        // `as` cast is okay, ModeInfo::resolution casts to usize from u32 for some
-        // reason..
-        Size::new(width as u32, height as u32)
+        // Shouldn't ever fail, both for reasonable limits and because
+        // ModeInfo::resolution casts to usize from u32 for some reason..
+        Size::new(width.try_into().unwrap(), height.try_into().unwrap())
     }
 }
 
@@ -51,11 +52,8 @@ impl<'a, T: Into<Bgr888> + PixelColor> DrawTarget<T> for UefiDisplay<'a> {
             _ => return Err(Unsupported(())),
         }
         let Size { width, height } = <Self as DrawTarget<T>>::size(self);
-        let stride: u64 = self
-            .info
-            .stride()
-            .try_into()
-            .expect("Stride didn't fit in u64. Buggy UEFI firmware?");
+        // ModeInfo::stride goes from u32 to usize, so this can't fail.
+        let stride: u64 = self.info.stride().try_into().unwrap();
         let (x, y) = (point.x as u64, point.y as u64);
         if x < width.into() && y < height.into() {
             let index: usize = (((y * stride) + x) * 4)

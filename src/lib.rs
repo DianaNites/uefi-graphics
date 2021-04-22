@@ -42,11 +42,11 @@ impl<'a, T: Into<Bgr888> + PixelColor> DrawTarget<T> for UefiDisplay<'a> {
         let Pixel(point, color) = item;
         let mut bytes = [0u8; 3];
         match self.info.pixel_format() {
-            PixelFormat::RGB => {
+            PixelFormat::Rgb => {
                 bytes
                     .copy_from_slice(&Rgb888::from(color.into()).into_storage().to_be_bytes()[1..]);
             }
-            PixelFormat::BGR => {
+            PixelFormat::Bgr => {
                 bytes.copy_from_slice(&color.into().into_storage().to_be_bytes()[1..]);
             }
             _ => return Err(Unsupported(())),

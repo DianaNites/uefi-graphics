@@ -21,13 +21,6 @@ let display = &mut UefiDisplay::new(
     // `UefiDisplay` cannot become invalid.
     fb.as_mut_ptr(),
 
-    // Translate the pixel format so uefi_graphics can use it.
-    match mode.pixel_format() {
-        PixelFormat::Rgb => uefi_graphics::PixelFormat::Rgb,
-        PixelFormat::Bgr => uefi_graphics::PixelFormat::Bgr,
-        _ => unimplemented!(),
-    },
-
     // These casts are needed because, while the uefi spec has these as u32,
     // the uefi crate casts them to usize for some reason.
     mode.stride() as u32,

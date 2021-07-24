@@ -1,7 +1,12 @@
 //! An embedded-graphics display driver for UEFI environments
 #![no_std]
 use core::{convert::TryInto, marker::PhantomData};
-use embedded_graphics::{drawable::Pixel, pixelcolor::*, prelude::*, DrawTarget};
+use embedded_graphics_core::{
+    draw_target::DrawTarget,
+    geometry::{OriginDimensions, Size},
+    pixelcolor::{IntoStorage, Rgb888},
+    Pixel,
+};
 
 #[derive(Debug)]
 pub struct Unsupported(());
@@ -12,27 +17,10 @@ impl Unsupported {
     }
 }
 
-/// Pixel format to use
-pub enum PixelFormat {
-    /// Red Green Blue
-    Rgb,
-
-    /// Blue Green Red
-    Bgr,
-}
-
-/// UEFI Display driver.
-///
-/// UEFI supports multiple different pixel formats, but embedded-graphics only
-/// supports one.
-/// To solve this, this display is generic over `Into<Bgr888>`.
-///
-/// At the moment this display only supports the BGR888 and RGB888 UEFI pixel
-/// formats. BltOnly and Bitmask are unsupported.
+/// UEFI Display driver. This assumes Rgb888 pixel formatting.
 pub struct UefiDisplay<'a> {
     /// UEFI Framebuffer
     fb: *mut u8,
-    pixel: PixelFormat,
     stride: u32,
     size: (u32, u32),
     spooky: PhantomData<&'a mut [u8]>,
@@ -41,8 +29,7 @@ pub struct UefiDisplay<'a> {
 impl<'a> UefiDisplay<'a> {
     /// Create a new [`UefiDisplay`].
     ///
-    /// `fb` must be the UEFI framebuffer base, `pixel` the pixel format in use,
-    /// `stride` the pixel stride,
+    /// `fb` must be the UEFI framebuffer base, and `stride` the pixel stride,
     /// and `size` the horizontal and vertical resolution, respectively.
     ///
     /// In the UEFI spec this information is found
@@ -50,57 +37,43 @@ impl<'a> UefiDisplay<'a> {
     ///
     /// `T` is something providing a lifetime for `fb`.
     /// If your UEFI API does not provide a lifetime, `&()` should work.
-    pub fn new<T>(
-        fb: *mut u8,
-        pixel: PixelFormat,
-        stride: u32,
-        size: (u32, u32),
-        _lifetime: &'a T,
-    ) -> Self {
+    pub fn new<T>(fb: *mut u8, stride: u32, size: (u32, u32), _lifetime: &'a T) -> Self {
         Self {
             fb,
-            pixel,
             stride,
             size,
             spooky: PhantomData,
         }
     }
+}
 
+impl<'a> OriginDimensions for UefiDisplay<'a> {
     /// Return the size of the display
-    pub fn size(&self) -> Size {
-        // Size::new(self.size.0, self.size.1)
+    fn size(&self) -> Size {
         Size::from(self.size)
     }
 }
 
-impl<'a, T: Into<Bgr888> + PixelColor> DrawTarget<T> for UefiDisplay<'a> {
+impl<'a> DrawTarget for UefiDisplay<'a> {
+    type Color = Rgb888;
+
     type Error = Unsupported;
 
-    fn draw_pixel(&mut self, item: Pixel<T>) -> Result<(), Self::Error> {
-        let Pixel(point, color) = item;
-        let mut bytes = [0u8; 3];
-        match self.pixel {
-            PixelFormat::Rgb => {
-                bytes
-                    .copy_from_slice(&Rgb888::from(color.into()).into_storage().to_be_bytes()[1..]);
-            }
-            PixelFormat::Bgr => {
-                bytes.copy_from_slice(&color.into().into_storage().to_be_bytes()[1..]);
-            }
-        }
-        let Size { width, height } = <Self as DrawTarget<T>>::size(self);
-        let stride: u64 = self.stride.into();
-        let (x, y) = (point.x as u64, point.y as u64);
-        if x < width.into() && y < height.into() {
+    fn draw_iter<I>(&mut self, pixels: I) -> Result<(), Self::Error>
+    where
+        I: IntoIterator<Item = Pixel<Self::Color>>,
+    {
+        let pixels = pixels.into_iter();
+        for Pixel(point, color) in pixels {
+            let bytes = color.into_storage();
+            let stride = self.stride as u64;
+            let (x, y) = (point.x as u64, point.y as u64);
+            // Get the linear index
             let index: usize = (((y * stride) + x) * 4)
                 .try_into()
                 .map_err(Unsupported::new)?;
-            unsafe { (self.fb.add(index) as *mut [u8; 3]).write_volatile(bytes) };
+            unsafe { (self.fb.add(index) as *mut u32).write_volatile(bytes) };
         }
         Ok(())
-    }
-
-    fn size(&self) -> Size {
-        self.size()
     }
 }

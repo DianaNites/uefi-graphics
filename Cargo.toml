@@ -11,4 +11,4 @@ keywords = ["uefi", "graphics", "no-std", "embedded"]
 categories = ["no-std", "embedded", "hardware-support"]
 
 [dependencies]
-embedded-graphics = "0.6.2"
+embedded-graphics-core = "0.3.2"

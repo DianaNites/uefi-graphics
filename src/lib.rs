@@ -47,7 +47,16 @@ impl<'a> UefiDisplay<'a> {
     ///
     /// In the UEFI spec this information is found
     /// in the `EFI_GRAPHICS_OUTPUT_MODE_INFORMATION` structure.
-    pub fn new(fb: *mut u8, pixel: PixelFormat, stride: u32, size: (u32, u32)) -> Self {
+    ///
+    /// `T` is something providing a lifetime for `fb`.
+    /// If your UEFI API does not provide a lifetime, `&()` should work.
+    pub fn new<T>(
+        fb: *mut u8,
+        pixel: PixelFormat,
+        stride: u32,
+        size: (u32, u32),
+        _lifetime: &'a T,
+    ) -> Self {
         Self {
             fb,
             pixel,
